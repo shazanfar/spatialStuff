@@ -1,0 +1,103 @@
+---
+title: "Polygon functions for neighbourhood analysis"
+author: "Shila Ghazanfar"
+date: "11/05/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(pracma)
+library(igraph)
+```
+
+```{r}
+source("../scripts/neighbourSegments.R")
+```
+
+# Generate some data
+
+Three cells
+
+```{r}
+verticesDF = rbind(
+    data.frame(uniqueID = "cell_1",
+               x = c(1,1,2,2),
+               y = c(1,2,2,1)),
+        data.frame(uniqueID = "cell_2",
+               x = c(2,2,3,3),
+               y = c(2,3,3,2)),
+        data.frame(uniqueID = "cell_3",
+               x = c(2.5,2.5,5,5),
+               y = c(3,5,5,3))
+)
+
+head(verticesDF)
+
+ggplot(verticesDF, aes(x = x, y = y, group = uniqueID, fill = uniqueID)) + 
+    geom_polygon() 
+```
+
+# Expand polygons
+
+```{r}
+verticesDF = addExpandedVertices(verticesDF,
+                                 xname = "x",
+                                 yname = "y",
+                                 group = "uniqueID",
+                                 expansionFactor = 1.1,
+                                 new_xname = "x_expanded",
+                                 new_yname = "y_expanded")
+
+head(verticesDF)
+
+ggplot(verticesDF, aes(x = x, y = y, group = uniqueID, fill = uniqueID)) + 
+    geom_polygon() +
+    geom_polygon(aes(x = x_expanded, y = y_expanded), fill = NA, colour = "black") + 
+    ggtitle("Polygons with expanded vertices") + 
+    NULL
+```
+
+# Get a network from neighbourhood overlaps
+
+```{r}
+verticesDF_list = split.data.frame(verticesDF, verticesDF$uniqueID)
+
+neighbour_graph = neighbourVertices(verticesDF_list,
+                                    xname = "x",
+                                    yname = "y",
+                                    expansionFactor = 1.1,
+                                    plot = FALSE,
+                                    plot2 = TRUE,
+                                    full = FALSE,
+                                    verbose = FALSE)
+
+neighbour_graph
+
+plot(neighbour_graph)
+```
+
+If we set a really huge expansion factor then we get a fully connected network
+
+```{r}
+neighbour_graph = neighbourVertices(verticesDF_list,
+                                    xname = "x",
+                                    yname = "y",
+                                    expansionFactor = 2,
+                                    plot = FALSE,
+                                    plot2 = TRUE,
+                                    full = FALSE,
+                                    verbose = FALSE)
+
+neighbour_graph
+
+plot(neighbour_graph)
+```
+
+```{r}
+sessionInfo()
+```
