@@ -1,0 +1,109 @@
+---
+title: "Extract polygons from dense cell segmentation"
+author: "Shila Ghazanfar"
+date: "15/06/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load functions
+
+```{r}
+source("../scripts/segmentation_functions.R")
+```
+
+# Load some example data
+
+```{r}
+data = readRDS("../data/dense_segmentation_example.Rds")
+```
+
+This is a dense cell segmentation per pixel, which also contains some sparse 
+segments that do not correspond to real cells.
+
+```{r}
+dim(data)
+data[1:5,1:5]
+ncells = length(unique(c(data)))
+ncells
+
+col = sample(rainbow(ncells))
+image(data, col = col)
+```
+
+# Extract polygons
+
+This function will extract the smallest set of vertices that can accurately 
+reflect the polygon structure of the segmentation. This method only works for
+solid segments (no doughnuts!).
+
+```{r}
+boundary_polygons = extractPolygonsFromSegmentation(
+    data,
+    modes = c("boundaryPolygons"),
+    cellFilterFactor = 5,
+    minPixels = 50,
+    cellPrefix = "cell_",
+    cellSuffix = "",
+    plot = TRUE,
+    verbose = FALSE
+)
+colnames(boundary_polygons) <- c("x","y","cell","uniqueID")
+
+dim(boundary_polygons)
+head(boundary_polygons)
+
+boundary_polygons <- pruneStraightLines(boundary_polygons, group = "uniqueID")
+
+dim(boundary_polygons)
+head(boundary_polygons)
+
+g1 = ggplot(boundary_polygons, aes(x = x, y = y, group = uniqueID)) + 
+    geom_polygon(aes(fill = uniqueID), alpha = 0.5, colour = "black", size = 0.3) + 
+    theme_classic() + 
+    theme(legend.position = "none") +
+    ggtitle("Extracted polygons using dense segmentation") +
+    NULL
+g1
+```
+
+# Faster (but less accurate) approach using convex hull
+
+```{r}
+boundary_polygons_chull = extractPolygonsFromSegmentation(
+    data,
+    modes = c("chull"),
+    cellFilterFactor = 5,
+    minPixels = 50,
+    cellPrefix = "cell_",
+    cellSuffix = "",
+    plot = TRUE,
+    verbose = FALSE
+)
+# much faster but not as clean
+colnames(boundary_polygons_chull) <- c("x","y","z", "value", "cell","uniqueID")
+
+dim(boundary_polygons_chull)
+head(boundary_polygons_chull)
+
+g2 = ggplot(boundary_polygons_chull, aes(x = x, y = y, group = uniqueID)) + 
+    geom_polygon(aes(fill = uniqueID), alpha = 0.5, colour = "black", size = 0.3) + 
+    theme_classic() + 
+    theme(legend.position = "none") +
+    ggtitle("Extracted polygons using convex hull") +
+    NULL
+g2
+```
+
+# Side-by-side
+
+```{r}
+g1 + g2
+```
+
+```{r}
+sessionInfo()
+```
