@@ -31,7 +31,7 @@ ncells = length(unique(c(data)))
 ncells
 
 col = sample(rainbow(ncells))
-image(data, col = col)
+image(data, col = col, asp = 1)
 ```
 
 # Extract polygons
@@ -66,6 +66,7 @@ g1 = ggplot(boundary_polygons, aes(x = x, y = y, group = uniqueID)) +
     theme_classic() + 
     theme(legend.position = "none") +
     ggtitle("Extracted polygons using dense segmentation") +
+    coord_fixed() +
     NULL
 g1
 ```
@@ -94,6 +95,7 @@ g2 = ggplot(boundary_polygons_chull, aes(x = x, y = y, group = uniqueID)) +
     theme_classic() + 
     theme(legend.position = "none") +
     ggtitle("Extracted polygons using convex hull") +
+    coord_fixed() +
     NULL
 g2
 ```
