@@ -49,6 +49,8 @@ getSegmentationVerticesDF = function(DF,
                                      othercols = c("uniqueID","z")) {
   # DF is a DataFrame object
   # othercols is the others to keep
+  stopifnot( sum(colnames(DF) %in% c(xname, yname)) == 2 ) 
+  stopifnot( sum(colnames(DF) %in% othercols) == length(othercols) ) 
   
   long_x = unlist(DF[,xname])
   long_y = unlist(DF[,yname])
@@ -59,12 +61,11 @@ getSegmentationVerticesDF = function(DF,
     long_x,
     long_y
   )
-  colnames(long_xy) <- c(xname, yname)
   
   long_DF = cbind(
     rep(DF[,othercols], times = unlist(lapply(DF[,xname], length))),
     long_xy
   )
-  
+  colnames(long_DF) <- c(othercols, xname, yname)
   return(as.data.frame(long_DF))
 }

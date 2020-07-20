@@ -1,0 +1,152 @@
+---
+title: "An example of incorporating spatial polygon information in SingleCellExperiment"
+author: "Shila Ghazanfar"
+date: "15/06/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(SpatialExperiment)
+library(scater)
+```
+
+# Load functions
+
+```{r}
+source("../scripts/segmentation_functions.R")
+source("../scripts/spatial_functions.R")
+```
+
+# Load some example cell segmentation
+
+```{r}
+data = readRDS("../data/dense_segmentation_example.Rds")
+boundary_polygons = extractPolygonsFromSegmentation(
+    data,
+    modes = c("boundaryPolygons"),
+    cellFilterFactor = 5,
+    minPixels = 50,
+    cellPrefix = "cell_",
+    cellSuffix = "",
+    plot = TRUE,
+    verbose = FALSE
+)
+colnames(boundary_polygons) <- c("x","y","cell","uniqueID")
+boundary_polygons <- pruneStraightLines(boundary_polygons, group = "uniqueID")
+dim(boundary_polygons)
+head(boundary_polygons)
+```
+
+# Simulate some expression counts
+
+```{r}
+cellnames = unique(as.character(boundary_polygons$uniqueID))
+length(cellnames)
+genenames = paste0("gene_", 1:10)
+exprs = matrix(rpois(length(cellnames)*length(genenames), 50), 
+               length(genenames), length(cellnames), 
+               dimnames = list(genenames, cellnames))
+dim(exprs)
+exprs[1:5,1:5]
+```
+
+# Build SingleCellExperiment
+
+```{r}
+spe = SpatialExperiment(assays = list(counts = exprs))
+colData(spe) <- scater::perCellQCMetrics(spe)
+
+# colData(spe)[, "uniqueID"] <- colnames(exprs) ## ????
+
+# colnames(sce) <- colnames(exprs)
+# rownames(sce) <- rownames(exprs)
+# rownames(colData(sce)) <- colnames(sce)
+spe
+```
+
+# Add cell polygons to colData(sce)
+
+The vertices are assigned as a NumericList, and by splitting the vertices
+data.frame by the cell ID "uniqueID".
+
+```{r}
+
+spatialCoordinates <- DataFrame(colnames(exprs), 
+    IRanges::NumericList( split(
+        as.numeric(boundary_polygons$x),
+        factor(boundary_polygons$uniqueID, 
+               levels = rownames(colData(spe)))))
+    , 
+IRanges::NumericList(
+    split(
+        as.numeric(boundary_polygons$y),
+        factor(boundary_polygons$uniqueID, 
+               levels = rownames(colData(spe)))
+)))
+colnames(spatialCoordinates) <- c("uniqueID", 
+                                "segmentation_vertices_x",
+                                "segmentation_vertices_y")
+spatialCoords(spe) <- spatialCoordinates
+
+# head(colData(sce))
+```
+
+# Given a SingleCellExperiment object, extract vertices for plotting
+
+Using the getSegmentationVerticesDF function.
+
+```{r}
+spdf <- DataFrame(spatialCoords(spe), colData(spe)$total)
+colnames(spdf) <- c(spatialCoordsNames(spe), "total")
+verticesDF <- getSegmentationVerticesDF(spdf, 
+                          xname="segmentation_vertices_x",
+                          yname="segmentation_vertices_y",
+                          othercols=c("uniqueID", "total"))
+```
+
+# Plot
+
+Fill the cells by the total counts.
+
+```{r}
+g = ggplot(verticesDF, aes(x = segmentation_vertices_x, 
+                       y = segmentation_vertices_y,
+                       group = uniqueID)) + 
+    geom_polygon(aes(fill = total)) + 
+    theme_classic() +
+    coord_fixed() +
+    NULL
+g
+
+g + facet_wrap(~ I(total < 500))
+```
+
+Fill the cells by the expression for a given gene (not the most well-thought 
+out implementation, this could be improved).
+
+```{r}
+verticesDF$expression = counts(sce)["gene_1", verticesDF$uniqueID]
+
+g = ggplot(verticesDF, aes(x = segmentation_vertices_x, 
+                       y = segmentation_vertices_y,
+                       group = uniqueID)) + 
+    geom_polygon(aes(fill = expression)) + 
+    theme_classic() +
+    coord_fixed() +
+    NULL
+g
+```
+
+# To-do
+
+Incorporate an argument to extract from assay slot in getSegmentationVerticesDF
+
+```{r}
+sessionInfo()
+```
