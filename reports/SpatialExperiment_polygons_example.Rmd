@@ -1,7 +1,7 @@
 ---
-title: "An example of incorporating spatial polygon information in SingleCellExperiment"
-author: "Shila Ghazanfar"
-date: "15/06/2020"
+title: "An example of incorporating spatial polygon information in SpatialExperiment"
+author: "Shila Ghazanfar and Dario Righelli"
+date: "`r Sys.Date()`"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -131,7 +131,7 @@ Fill the cells by the expression for a given gene (not the most well-thought
 out implementation, this could be improved).
 
 ```{r}
-verticesDF$expression = counts(sce)["gene_1", verticesDF$uniqueID]
+verticesDF$expression = counts(spe)["gene_1", verticesDF$uniqueID]
 
 g = ggplot(verticesDF, aes(x = segmentation_vertices_x, 
                        y = segmentation_vertices_y,
