@@ -1,0 +1,84 @@
+---
+title: "Example of plotVectorField usage"
+author: "Shila Ghazanfar"
+date: "30/07/2020"
+output:
+       html_document:
+                     toc: true
+                     toc_float:
+                           collapsed: false
+                           smooth_scroll: false
+                     code_folding: hide
+                     fig_width: 10
+                     fig_height: 8
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
+                      cache = FALSE, cache.lazy = FALSE)
+```
+
+```{r}
+set.seed(2020)
+```
+
+# To do
+
+- More intuitive masking of the arrows based on neighbourhood density.
+
+# Source the function
+
+```{r}
+source("plotVectorField.R")
+```
+
+# Print the function here, especially note the required packages
+
+```{r}
+plotVectorField
+```
+
+# Example data using SingleCellExperiment
+
+```{r}
+library(scater)
+library(scran)
+sce = scater::mockSCE(ncells = 5000, ngenes = 100, nspikes = 1)
+sce <- logNormCounts(sce)
+sce <- runUMAP(sce)
+plotUMAP(sce)
+```
+
+Assign LFC to be related to the UMAP coordinates, but NA for most values.
+
+```{r}
+sce$LFC <-reducedDim(sce, "UMAP")[,1] + 
+    abs(reducedDim(sce, "UMAP")[,2]) + 
+    rnorm(5000, mean = 0, sd = 0.2)
+sce$LFC[sample(ncol(sce), 0.9*ncol(sce))] <- NA
+
+# input coords and outcome
+x = reducedDim(sce, "UMAP")[,1]
+y = reducedDim(sce, "UMAP")[,2]
+val = sce$LFC
+```
+
+# Run plotVectorField and view graph
+
+```{r}
+res = plotVectorField(x, y, val, mask = FALSE, nbins = 20)
+names(res)
+lapply(res, class)
+res[["plot"]] + ggtitle("Example")
+```
+
+And view the arrows dataframe. This is useful for plotting multiple sets of 
+arrows on the same plot.
+
+```{r}
+head(res[["arrows_df"]])
+```
+
+```{r}
+sessionInfo()
+```
