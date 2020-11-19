@@ -56,7 +56,7 @@ dim(exprs)
 exprs[1:5,1:5]
 ```
 
-# Build SingleCellExperiment
+# Build SpatialExperiment
 
 ```{r}
 spe = SpatialExperiment(assays = list(counts = exprs))
@@ -97,7 +97,7 @@ spatialCoords(spe) <- spatialCoordinates
 # head(colData(sce))
 ```
 
-# Given a SingleCellExperiment object, extract vertices for plotting
+# Given a SpatialExperiment object, extract vertices for plotting
 
 Using the getSegmentationVerticesDF function.
 
